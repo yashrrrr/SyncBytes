@@ -44,7 +44,7 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-4 text-sm font-medium">
           <a
-            href="https://github.com"
+            href="https://github.com/yashrrrr/SyncBytes"
             target="_blank"
             rel="noreferrer"
             className="text-slate-400 hover:text-slate-200 transition-colors"
@@ -64,7 +64,7 @@ export default function LandingPage() {
       <main className="max-w-4xl mx-auto px-6 pt-12 pb-24 text-center z-10 flex flex-col items-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-indigo-400 font-medium mb-8">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Cost-Optimized ($5/mo) AWS Distributed Systems Architecture</span>
+          <span>Distributed Real-Time Systems Architecture on AWS</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-[1.15]">
@@ -132,9 +132,9 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-lg bg-sky-950 border border-sky-800/50 flex items-center justify-center text-sky-400 mb-3">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <h3 className="font-semibold text-white text-sm mb-1">Zero-NAT Cost Architecture</h3>
+            <h3 className="font-semibold text-white text-sm mb-1">High-Throughput Edge Ingress</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
-              Custom Caddy reverse proxy on single public subnet avoiding $50+/mo ALB & NAT Gateway AWS charges.
+              Caddy reverse proxy terminating TLS and streaming WebSocket connections directly into ECS Fargate.
             </p>
           </div>
         </div>

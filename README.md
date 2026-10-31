@@ -1,12 +1,12 @@
 # SyncBytes ⚡
 
-> **A Low-Latency, Real-Time Collaborative Document & Whiteboard Studio built on Yjs CRDTs with a Cost-Optimized ($5/mo) AWS Architecture.**
+> **A Low-Latency, Real-Time Collaborative Document & Whiteboard Studio built on Yjs CRDTs with a High-Performance, Scalable AWS Architecture.**
 
 [![CI Pipeline](https://github.com/yashrrrr/SyncBytes/actions/workflows/ci.yml/badge.svg)](https://github.com/yashrrrr/SyncBytes/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Turborepo](https://img.shields.io/badge/monorepo-Turborepo-ef4444.svg)](https://turbo.build)
 [![Next.js 15](https://img.shields.io/badge/frontend-Next.js%2015-black.svg)](https://nextjs.org)
-[![AWS Architecture](https://img.shields.io/badge/AWS-Fargate%20Spot%20%2B%20Serverless-orange.svg)](https://aws.amazon.com)
+[![AWS Architecture](https://img.shields.io/badge/AWS-Fargate%20%2B%20Serverless-orange.svg)](https://aws.amazon.com)
 
 ---
 
@@ -28,12 +28,12 @@ flowchart TD
         Caddy["Caddy Reverse Proxy\n(HTTPS TLS + WSS Upgrade)"]
     end
 
-    subgraph Compute["ECS Fargate Spot Tasks (70% Discount)"]
+    subgraph Compute["ECS Fargate Tasks"]
         NextApp["Next.js Web & API Container\n(App Router / Minimal SSR)"]
         SyncServer["Node.js Sync Server\n(WebSocket CRDT & Awareness)"]
     end
 
-    subgraph State["State & Pub/Sub (Free Tier)"]
+    subgraph State["State & Pub/Sub Tier"]
         Redis[("Upstash Redis\n(Cross-node Awareness & Pub/Sub)")]
         DDB[("Amazon DynamoDB\n(Append-Only Delta Log)")]
     end
@@ -55,24 +55,6 @@ flowchart TD
     Lambda -->|Read deltas| DDB
     Lambda -->|Write compacted snapshot| S3
 ```
-
----
-
-## 💰 The $5/Month AWS Cost Optimization Strategy
-
-Traditional real-time collaboration architectures on AWS frequently cost **$80–$150/month minimum**, even with zero traffic:
-
-| Traditional AWS Component | Typical Cost | SyncBytes Cost-Optimized Alternative | Our Cost |
-| :--- | :--- | :--- | :--- |
-| **AWS Application Load Balancer (ALB)** | ~$22.00 / mo | **Caddy Reverse Proxy** on single public container | **$0.00** |
-| **AWS NAT Gateway** | ~$32.85 / mo + data | **Direct IGW in single public subnet** with strict SGs | **$0.00** |
-| **Always-on EC2 / ECS On-Demand** | ~$35.00 / mo | **ECS Fargate Spot (70% discount)** / scale-to-zero | **~$3.50 / mo** |
-| **Amazon ElastiCache Redis** | ~$18.00 / mo | **Serverless Redis (Upstash Free Tier)** (10k cmd/day) | **$0.00** |
-| **Amazon RDS PostgreSQL** | ~$25.00 / mo | **Serverless Postgres (Supabase / Neon Free Tier)** | **$0.00** |
-| **DynamoDB Delta Log** | Variable | **DynamoDB On-Demand** (25 GB Always Free Tier) | **$0.00** |
-| **S3 Snapshots & SQS** | Variable | **S3 Standard + SQS (1M requests/mo Always Free)** | **~$0.10 / mo** |
-| **Route 53 Hosted Zone** | $0.50 / mo | **Route 53 or Cloudflare Free DNS** | **$0.50 / mo** |
-| **Total Baseline Monthly Cost** | **$133.35+ / month** | **SyncBytes Production Stack** | **~ $4.10 / month** |
 
 ---
 
@@ -109,7 +91,7 @@ SyncBytes/
 │   └── config-eslint/          # Shared ESLint configuration
 ├── infra/
 │   ├── docker/                 # Local dev emulators (DynamoDB Local, MinIO, Redis, Caddy)
-│   └── terraform/              # Production AWS IaC (VPC, Fargate Spot, ECR, DynamoDB, SQS, S3)
+│   └── terraform/              # Production AWS IaC (VPC, Fargate, ECR, DynamoDB, SQS, S3)
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml              # CI lint, typecheck & automated test suite
@@ -161,7 +143,7 @@ pnpm dev
 
 ## 🛠️ Production AWS Deployment (Terraform)
 
-Deploy the entire cost-optimized AWS infrastructure using Terraform:
+Deploy the production AWS infrastructure using Terraform:
 
 ```bash
 cd infra/terraform
@@ -173,7 +155,7 @@ terraform apply
 To configure GitHub Actions automated deployments:
 1. Set up an AWS IAM OIDC Identity Provider for your GitHub repository.
 2. Add `AWS_ROLE_ARN` and `AWS_REGION` to your GitHub Repository Secrets.
-3. Push to `main` branch: GitHub Actions will automatically run type checks, tests, build Docker containers to Amazon ECR, and perform zero-downtime rolling updates to ECS Fargate Spot.
+3. Push to `main` branch: GitHub Actions will automatically run type checks, tests, build Docker containers to Amazon ECR, and perform zero-downtime rolling updates to ECS Fargate.
 
 ---
 
