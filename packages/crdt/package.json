@@ -7,7 +7,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "check-types": "tsc --noEmit",
-    "test": "tsx --test __tests__/**/*.test.ts"
+    "test": "tsx --test"
   },
   "dependencies": {
     "yjs": "^13.6.23"
