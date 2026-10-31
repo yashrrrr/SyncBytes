@@ -61,6 +61,22 @@ resource "aws_security_group" "caddy_ingress" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Direct Web (Debug)"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Direct Sync Server (Debug)"
+    from_port   = 4000
+    to_port     = 4000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -163,4 +179,140 @@ resource "aws_iam_policy" "sync_server_policy" {
 resource "aws_iam_role_policy_attachment" "sync_server" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.sync_server_policy.arn
+}
+
+# -------------------------------------------------------------
+# CloudWatch Logs for ECS Containers
+# -------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/${var.project_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name = "${var.project_name}-ecs-logs"
+  }
+}
+
+# -------------------------------------------------------------
+# ECS Task Definition: Web + Sync-Server + Caddy Reverse Proxy
+# -------------------------------------------------------------
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${var.project_name}-app"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "sync-server"
+      image     = "${aws_ecr_repository.sync_server.repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 4000
+          hostPort      = 4000
+          protocol      = "tcp"
+        }
+      ]
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "PORT", value = "4000" },
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "DYNAMODB_TABLE_NAME", value = aws_dynamodb_table.deltas.name },
+        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.snapshots.bucket },
+        { name = "SQS_QUEUE_URL", value = aws_sqs_queue.compaction.url },
+        { name = "COMPACTION_DELTA_THRESHOLD", value = "50" },
+        { name = "DEBOUNCE_FLUSH_MS", value = "500" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "sync-server"
+        }
+      }
+    },
+    {
+      name      = "web"
+      image     = "${aws_ecr_repository.web.repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 3000
+          hostPort      = 3000
+          protocol      = "tcp"
+        }
+      ]
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "PORT", value = "3000" },
+        { name = "HOSTNAME", value = "0.0.0.0" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "web"
+        }
+      }
+    },
+    {
+      name      = "caddy"
+      image     = "caddy:2.8-alpine"
+      essential = true
+      entryPoint = [
+        "sh",
+        "-c"
+      ]
+      command = [
+        "printf ':80 {\\n  handle /ws* {\\n    reverse_proxy 127.0.0.1:4000\\n  }\\n  handle {\\n    reverse_proxy 127.0.0.1:3000\\n  }\\n}\\n' > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"
+      ]
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "caddy"
+        }
+      }
+    }
+  ])
+}
+
+# -------------------------------------------------------------
+# ECS Service: Runs on Fargate Spot
+# -------------------------------------------------------------
+resource "aws_ecs_service" "app" {
+  name            = "${var.project_name}-app-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 1
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 100
+  }
+
+  network_configuration {
+    subnets          = [aws_subnet.public.id]
+    security_groups  = [aws_security_group.caddy_ingress.id]
+    assign_public_ip = true
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }

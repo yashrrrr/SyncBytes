@@ -47,3 +47,7 @@ jobs:
           # Build and push Next.js web
           docker build -t $ECR_REGISTRY/syncbytes-web:latest -f apps/web/Dockerfile .
           docker push $ECR_REGISTRY/syncbytes-web:latest
+
+      - name: Trigger ECS Rolling Update
+        run: |
+          aws ecs update-service --cluster syncbytes-cluster --service syncbytes-app-service --force-new-deployment
