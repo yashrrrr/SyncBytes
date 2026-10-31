@@ -53,11 +53,14 @@ jobs:
           aws ecs update-service --cluster syncbytes-cluster --service syncbytes-app-service --force-new-deployment
 
       - name: Update DuckDNS with New Container IP
-        if: ${{ secrets.DUCKDNS_TOKEN != '' && secrets.DUCKDNS_DOMAIN != '' }}
         env:
           DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
           DUCKDNS_DOMAIN: ${{ secrets.DUCKDNS_DOMAIN }}
         run: |
+          if [ -z "$DUCKDNS_TOKEN" ] || [ -z "$DUCKDNS_DOMAIN" ]; then
+            echo "DuckDNS secrets not configured. Skipping DNS update."
+            exit 0
+          fi
           echo "Waiting 35s for the new task network interface to initialize..."
           sleep 35
           TASK_ARN=$(aws ecs list-tasks --cluster syncbytes-cluster --service-name syncbytes-app-service --query "taskArns[0]" --output text)
