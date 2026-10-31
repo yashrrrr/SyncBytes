@@ -20,6 +20,8 @@ export interface UseYjsRoomReturn {
   localUser: UserPresence;
   onlineUsers: UserPresence[];
   shapesMap: Y.Map<CanvasShape>;
+  excalidrawElementsMap: Y.Map<any>;
+  excalidrawFilesMap: Y.Map<any>;
   textFragment: Y.XmlFragment;
   metadataMap: Y.Map<any>;
 }
@@ -117,6 +119,8 @@ export function useYjsRoom(docId: string, userName?: string): UseYjsRoomReturn {
     localUser,
     onlineUsers,
     shapesMap: hybrid.shapesMap,
+    excalidrawElementsMap: hybrid.excalidrawElementsMap,
+    excalidrawFilesMap: hybrid.excalidrawFilesMap,
     textFragment: hybrid.textFragment,
     metadataMap: hybrid.metadataMap,
   };

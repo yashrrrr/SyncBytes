@@ -3,6 +3,8 @@ export const CRDT_FIELDS = {
   PROSEMIRROR: 'prosemirror',
   SHAPES: 'shapes',
   BINDINGS: 'bindings',
+  EXCALIDRAW_ELEMENTS: 'excalidraw_elements',
+  EXCALIDRAW_FILES: 'excalidraw_files',
 } as const;
 
 export const DEFAULT_PRESENCE_COLORS = [

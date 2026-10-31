@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useYjsRoom } from '../hooks/use-yjs-room';
 import { RichTextEditor } from './editor/rich-text-editor';
-import { CollaborativeCanvas } from './canvas/collaborative-canvas';
+import { ExcalidrawCanvas } from './canvas/excalidraw-canvas';
 import {
   FileText,
   LayoutGrid,
@@ -29,7 +29,7 @@ export const CollaborativeWorkspace: React.FC<CollaborativeWorkspaceProps> = ({ 
     status,
     localUser,
     onlineUsers,
-    shapesMap,
+    excalidrawElementsMap,
     metadataMap,
   } = useYjsRoom(docId);
 
@@ -183,7 +183,7 @@ export const CollaborativeWorkspace: React.FC<CollaborativeWorkspaceProps> = ({ 
       </header>
 
       {/* Main Workspace Body */}
-      <main className="flex-1 overflow-hidden p-3 gap-3 flex">
+      <main className="flex-1 min-h-0 overflow-hidden p-3 gap-3 flex">
         {(viewMode === 'doc' || viewMode === 'split') && (
           <div className={`h-full ${viewMode === 'split' ? 'w-1/2' : 'w-full'} transition-all duration-200`}>
             <RichTextEditor doc={doc} provider={provider} localUser={localUser} />
@@ -192,8 +192,9 @@ export const CollaborativeWorkspace: React.FC<CollaborativeWorkspaceProps> = ({ 
 
         {(viewMode === 'canvas' || viewMode === 'split') && (
           <div className={`h-full ${viewMode === 'split' ? 'w-1/2' : 'w-full'} transition-all duration-200`}>
-            <CollaborativeCanvas
-              shapesMap={shapesMap}
+            <ExcalidrawCanvas
+              doc={doc}
+              excalidrawElementsMap={excalidrawElementsMap}
               provider={provider}
               localUser={localUser}
               onlineUsers={onlineUsers}

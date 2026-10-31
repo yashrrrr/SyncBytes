@@ -7,6 +7,8 @@ export interface HybridDocStructure {
   metadataMap: Y.Map<any>;
   textFragment: Y.XmlFragment;
   shapesMap: Y.Map<CanvasShape>;
+  excalidrawElementsMap: Y.Map<any>;
+  excalidrawFilesMap: Y.Map<any>;
 }
 
 /**
@@ -16,12 +18,16 @@ export function initHybridDoc(doc: Y.Doc = new Y.Doc()): HybridDocStructure {
   const metadataMap = doc.getMap(CRDT_FIELDS.METADATA);
   const textFragment = doc.getXmlFragment(CRDT_FIELDS.PROSEMIRROR);
   const shapesMap = doc.getMap<CanvasShape>(CRDT_FIELDS.SHAPES);
+  const excalidrawElementsMap = doc.getMap(CRDT_FIELDS.EXCALIDRAW_ELEMENTS);
+  const excalidrawFilesMap = doc.getMap(CRDT_FIELDS.EXCALIDRAW_FILES);
 
   return {
     doc,
     metadataMap,
     textFragment,
     shapesMap,
+    excalidrawElementsMap,
+    excalidrawFilesMap,
   };
 }
 

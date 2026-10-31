@@ -12,13 +12,13 @@
 
 ## 🏗️ System Architecture
 
-SyncBytes uses a hybrid collaborative architecture combining **rich-text document editing (TipTap / ProseMirror)** with an **infinite collaborative whiteboard canvas**, synchronized over a unified **Yjs CRDT** data structure.
+SyncBytes uses a hybrid collaborative architecture combining **rich-text document editing (TipTap / ProseMirror)** with **Excalidraw collaborative whiteboard**, synchronized over a unified **Yjs CRDT** data structure.
 
 ```mermaid
 flowchart TD
     subgraph Client["Client Tier (Next.js 15 + Yjs)"]
-        UI["Hybrid Editor UI\n(TipTap + Infinite Whiteboard)"]
-        YDoc["Yjs Root Doc\n(doc.getText, doc.getMap('shapes'))"]
+        UI["Hybrid Editor UI\n(TipTap + Excalidraw Whiteboard)"]
+        YDoc["Yjs Root Doc\n(doc.getText, doc.getMap('excalidraw_elements'))"]
         IndexedDB["y-indexeddb\n(Instant Offline Persistence)"]
         YDoc <--> IndexedDB
         UI <--> YDoc
