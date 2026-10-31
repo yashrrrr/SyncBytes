@@ -271,12 +271,17 @@ resource "aws_ecs_task_definition" "app" {
         "-c"
       ]
       command = [
-        "printf ':80 {\\n  handle /ws* {\\n    reverse_proxy 127.0.0.1:4000\\n  }\\n  handle {\\n    reverse_proxy 127.0.0.1:3000\\n  }\\n}\\n' > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"
+        "printf ':80, ${var.domain_name} {\\n  handle /ws* {\\n    reverse_proxy 127.0.0.1:4000\\n  }\\n  handle {\\n    reverse_proxy 127.0.0.1:3000\\n  }\\n}\\n' > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"
       ]
       portMappings = [
         {
           containerPort = 80
           hostPort      = 80
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 443
+          hostPort      = 443
           protocol      = "tcp"
         }
       ]

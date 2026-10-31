@@ -51,3 +51,18 @@ jobs:
       - name: Trigger ECS Rolling Update
         run: |
           aws ecs update-service --cluster syncbytes-cluster --service syncbytes-app-service --force-new-deployment
+
+      - name: Update DuckDNS with New Container IP
+        if: env.DUCKDNS_TOKEN != '' && env.DUCKDNS_DOMAIN != ''
+        env:
+          DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+          DUCKDNS_DOMAIN: ${{ secrets.DUCKDNS_DOMAIN }}
+        run: |
+          echo "Waiting 35s for the new task network interface to initialize..."
+          sleep 35
+          TASK_ARN=$(aws ecs list-tasks --cluster syncbytes-cluster --service-name syncbytes-app-service --query "taskArns[0]" --output text)
+          ENI_ID=$(aws ecs describe-tasks --cluster syncbytes-cluster --tasks $TASK_ARN --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text)
+          NEW_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query "NetworkInterfaces[0].Association.PublicIp" --output text)
+          echo "Discovered active task public IP: $NEW_IP"
+          RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=${DUCKDNS_DOMAIN}&token=${DUCKDNS_TOKEN}&ip=${NEW_IP}")
+          echo "DuckDNS update response: $RESPONSE"

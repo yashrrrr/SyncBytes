@@ -21,3 +21,9 @@ variable "github_repo" {
   type        = string
   default     = "yashrrrr/SyncBytes"
 }
+
+variable "domain_name" {
+  description = "Custom domain or DuckDNS subdomain"
+  type        = string
+  default     = "syncbytes.duckdns.org"
+}
