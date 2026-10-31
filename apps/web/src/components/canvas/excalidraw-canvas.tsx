@@ -7,9 +7,12 @@ import type { WebsocketProvider } from 'y-websocket';
 import type { UserPresence } from '@syncbytes/crdt';
 
 // Dynamically load Excalidraw with custom white-labeled MainMenu and WelcomeScreen
+let excalidrawLib: any = null;
+
 const ExcalidrawComponent = dynamic(
   async () => {
     const mod = await import('@excalidraw/excalidraw');
+    excalidrawLib = mod;
     const Excalidraw = mod.Excalidraw;
     const MainMenu = mod.MainMenu;
     const WelcomeScreen = mod.WelcomeScreen;
@@ -72,6 +75,16 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
 }) => {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const isSyncingFromRemoteRef = useRef(false);
+  const lastPointerSyncRef = useRef<number>(0);
+
+  // Preload excalidrawLib on client mount if not already loaded
+  useEffect(() => {
+    if (!excalidrawLib && typeof window !== 'undefined') {
+      import('@excalidraw/excalidraw').then((mod) => {
+        excalidrawLib = mod;
+      });
+    }
+  }, []);
 
   // Map online users into Excalidraw Collaborator Map
   const collaborators = useMemo(() => {
@@ -110,6 +123,7 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
       isSyncingFromRemoteRef.current = true;
       excalidrawAPI.updateScene({
         elements: initialElements,
+        captureUpdate: excalidrawLib?.CaptureUpdateAction?.NEVER ?? 'NEVER',
       });
       setTimeout(() => {
         isSyncingFromRemoteRef.current = false;
@@ -117,7 +131,7 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
     }
   }, [excalidrawAPI, excalidrawElementsMap]);
 
-  // Observe remote Yjs updates and update Excalidraw scene
+  // Observe remote Yjs updates and update Excalidraw scene using reconcileElements
   useEffect(() => {
     if (!excalidrawAPI) return;
 
@@ -126,10 +140,28 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
       if (transaction.origin === 'excalidraw-local') return;
 
       const remoteElements = Array.from(excalidrawElementsMap.values());
+      const localAppState = excalidrawAPI.getAppState ? excalidrawAPI.getAppState() : {};
+      const localElements = excalidrawAPI.getSceneElementsIncludingDeleted
+        ? excalidrawAPI.getSceneElementsIncludingDeleted()
+        : [];
+
+      let finalElements: any[] = remoteElements;
+      if (excalidrawLib?.reconcileElements) {
+        const restoredRemote = excalidrawLib.restoreElements
+          ? excalidrawLib.restoreElements(remoteElements, localElements)
+          : remoteElements;
+
+        finalElements = excalidrawLib.reconcileElements(
+          localElements,
+          restoredRemote,
+          localAppState
+        );
+      }
 
       isSyncingFromRemoteRef.current = true;
       excalidrawAPI.updateScene({
-        elements: remoteElements,
+        elements: finalElements,
+        captureUpdate: excalidrawLib?.CaptureUpdateAction?.NEVER ?? 'NEVER',
       });
 
       // Release lock after updateScene finishes
@@ -145,19 +177,36 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
     };
   }, [excalidrawAPI, excalidrawElementsMap]);
 
-  // Handle local user edits and push to Y.Doc
-  const handleOnChange = useCallback(
-    (elements: readonly any[], _appState: any) => {
+  // Helper to sync elements to Yjs with dirty-checking and deep cloning
+  const syncElementsToYjs = useCallback(
+    (elementsToSync: readonly any[]) => {
       if (isSyncingFromRemoteRef.current) return;
-      if (!elements || elements.length === 0) return;
+      if (!elementsToSync || elementsToSync.length === 0) return;
 
-      // Group element changes into an atomic Yjs transaction
       doc.transact(() => {
-        elements.forEach((el) => {
+        elementsToSync.forEach((el) => {
           const current = excalidrawElementsMap.get(el.id);
-          // Only update if element is new or has a newer version / versionNonce
-          if (!current || current.version < el.version || current.versionNonce !== el.versionNonce) {
-            excalidrawElementsMap.set(el.id, el);
+          const hasChanged =
+            !current ||
+            current.version !== el.version ||
+            current.versionNonce !== el.versionNonce ||
+            current.x !== el.x ||
+            current.y !== el.y ||
+            current.width !== el.width ||
+            current.height !== el.height ||
+            current.isDeleted !== el.isDeleted ||
+            (Array.isArray(el.points) &&
+              (!current.points ||
+                current.points.length !== el.points.length ||
+                current.points[current.points.length - 1]?.[0] !==
+                  el.points[el.points.length - 1]?.[0] ||
+                current.points[current.points.length - 1]?.[1] !==
+                  el.points[el.points.length - 1]?.[1]));
+
+          if (hasChanged) {
+            // Deep clone so that future in-place mutations by Excalidraw's engine do NOT
+            // alter the stored reference in memory, allowing subsequent diffs to detect changes accurately
+            excalidrawElementsMap.set(el.id, JSON.parse(JSON.stringify(el)));
           }
         });
       }, 'excalidraw-local');
@@ -165,7 +214,15 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
     [doc, excalidrawElementsMap]
   );
 
-  // Broadcast mouse pointer to peers via Yjs awareness
+  // Handle local user edits and push to Y.Doc
+  const handleOnChange = useCallback(
+    (elements: readonly any[], _appState: any) => {
+      syncElementsToYjs(elements);
+    },
+    [syncElementsToYjs]
+  );
+
+  // Broadcast mouse pointer to peers via Yjs awareness and sync in-progress drawing strokes
   const handlePointerUpdate = useCallback(
     (payload: { pointer: { x: number; y: number }; button: 'down' | 'up' }) => {
       if (!provider) return;
@@ -180,8 +237,22 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
         },
         lastActive: Date.now(),
       });
+
+      // While the user is actively drawing/dragging, broadcast real-time stroke coordinates throttled (~35ms)
+      if (payload.button === 'down' && excalidrawAPI) {
+        const now = Date.now();
+        if (now - lastPointerSyncRef.current > 35) {
+          lastPointerSyncRef.current = now;
+          const liveElements = excalidrawAPI.getSceneElementsIncludingDeleted();
+          syncElementsToYjs(liveElements);
+        }
+      } else if (payload.button === 'up' && excalidrawAPI) {
+        // Sync final state on pointer up
+        const liveElements = excalidrawAPI.getSceneElementsIncludingDeleted();
+        syncElementsToYjs(liveElements);
+      }
     },
-    [provider, localUser]
+    [provider, localUser, excalidrawAPI, syncElementsToYjs]
   );
 
   return (
