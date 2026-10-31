@@ -53,7 +53,7 @@ jobs:
           aws ecs update-service --cluster syncbytes-cluster --service syncbytes-app-service --force-new-deployment
 
       - name: Update DuckDNS with New Container IP
-        if: env.DUCKDNS_TOKEN != '' && env.DUCKDNS_DOMAIN != ''
+        if: ${{ secrets.DUCKDNS_TOKEN != '' && secrets.DUCKDNS_DOMAIN != '' }}
         env:
           DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
           DUCKDNS_DOMAIN: ${{ secrets.DUCKDNS_DOMAIN }}
