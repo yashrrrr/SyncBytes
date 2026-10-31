@@ -13,7 +13,7 @@ services:
 
   # Local S3 emulator for document snapshots and media
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: syncbytes-minio
     restart: unless-stopped
     ports:

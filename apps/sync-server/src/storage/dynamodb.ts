@@ -12,13 +12,13 @@ const clientOptions: any = {
 if (config.dynamoEndpoint) {
   clientOptions.endpoint = config.dynamoEndpoint;
   clientOptions.credentials = {
-    accessKeyId: 'mock-key',
-    secretAccessKey: 'mock-secret',
+    accessKeyId: 'fakeMyKeyId',
+    secretAccessKey: 'fakeSecretAccessKey',
   };
 } else if (!config.isProduction && !config.hasAwsCredentials) {
   clientOptions.credentials = {
-    accessKeyId: 'mock-key',
-    secretAccessKey: 'mock-secret',
+    accessKeyId: 'fakeMyKeyId',
+    secretAccessKey: 'fakeSecretAccessKey',
   };
 }
 

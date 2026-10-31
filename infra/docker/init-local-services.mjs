@@ -22,10 +22,10 @@ const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 const ddbClient = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
-  region: AWS_REGION,
+  region: 'local',
   credentials: {
-    accessKeyId: 'mock-key',
-    secretAccessKey: 'mock-secret',
+    accessKeyId: 'fakeMyKeyId',
+    secretAccessKey: 'fakeSecretAccessKey',
   },
 });
 
