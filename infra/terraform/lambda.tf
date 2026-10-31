@@ -94,8 +94,8 @@ resource "aws_lambda_function" "compactor" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.deltas.name
-      S3_BUCKET_NAME      = aws_s3_bucket.snapshots.bucket
+      DYNAMODB_TABLE_NAME                 = aws_dynamodb_table.deltas.name
+      S3_BUCKET_NAME                      = aws_s3_bucket.snapshots.bucket
       AWS_NODEJS_CONNECTION_REUSE_ENABLED = "1"
     }
   }

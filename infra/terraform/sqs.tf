@@ -7,7 +7,7 @@ resource "aws_sqs_queue" "compaction_dlq" {
 }
 
 resource "aws_sqs_queue" "compaction" {
-  name                      = "${var.project_name}-compaction-queue"
+  name                       = "${var.project_name}-compaction-queue"
   visibility_timeout_seconds = 300   # 5 minutes for Lambda compaction
   message_retention_seconds  = 86400 # 1 day
 
