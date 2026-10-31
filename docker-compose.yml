@@ -1,0 +1,58 @@
+services:
+  # Local DynamoDB for CRDT append-only delta updates
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: syncbytes-dynamodb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    volumes:
+      - .docker-data/dynamodb:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+
+  # Local S3 emulator for document snapshots and media
+  minio:
+    image: minio/minio:latest
+    container_name: syncbytes-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    command: server /data --console-address ":9001"
+    volumes:
+      - .docker-data/minio:/data
+
+  # Local Redis for cross-node awareness and WebSocket pub/sub
+  redis:
+    image: redis:7-alpine
+    container_name: syncbytes-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - .docker-data/redis:/data
+
+  # Edge Reverse Proxy terminating TLS and routing /api and /ws
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: syncbytes-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/docker/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - .docker-data/caddy_data:/data
+      - .docker-data/caddy_config:/config
+    depends_on:
+      - redis
+      - dynamodb-local
+      - minio
+
+networks:
+  default:
+    name: syncbytes-network

@@ -1,0 +1,20 @@
+{
+  "name": "@syncbytes/crdt",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "check-types": "tsc --noEmit",
+    "test": "tsx --test __tests__/**/*.test.ts"
+  },
+  "dependencies": {
+    "yjs": "^13.6.23"
+  },
+  "devDependencies": {
+    "@syncbytes/config-typescript": "workspace:*",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

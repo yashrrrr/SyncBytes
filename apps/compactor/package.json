@@ -1,0 +1,25 @@
+{
+  "name": "@syncbytes/compactor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.758.0",
+    "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/client-sqs": "^3.758.0",
+    "@aws-sdk/util-dynamodb": "^3.758.0",
+    "@syncbytes/crdt": "workspace:*",
+    "yjs": "^13.6.23"
+  },
+  "devDependencies": {
+    "@syncbytes/config-typescript": "workspace:*",
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.13.9",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.2"
+  }
+}

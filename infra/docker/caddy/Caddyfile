@@ -1,0 +1,22 @@
+# Local development Caddy configuration
+:80 {
+    log {
+        output stdout
+        format console
+    }
+
+    # Route WebSocket connections to Node.js sync server
+    handle /ws* {
+        reverse_proxy host.docker.internal:4000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+
+    # Route all web & API traffic to Next.js
+    handle {
+        reverse_proxy host.docker.internal:3000
+    }
+}
